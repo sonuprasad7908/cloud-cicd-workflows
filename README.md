@@ -28,3 +28,16 @@ Deployment Workflow
 Health Check
       ↓
 Success / Rollback
+
+## 📌 Project Roadmap
+
+- [x] Create sample application with health endpoint
+- [ ] Containerize application with Docker
+- [ ] Add continuous integration workflow
+- [ ] Add Docker image validation
+- [ ] Add development deployment workflow
+- [ ] Add test deployment workflow
+- [ ] Add production deployment workflow
+- [ ] Add deployment health-check script
+- [ ] Add rollback validation
+- [ ] Document CI/CD architecture
