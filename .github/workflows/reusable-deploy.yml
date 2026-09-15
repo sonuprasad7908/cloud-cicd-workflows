@@ -46,7 +46,7 @@ jobs:
             -t "${IMAGE_NAME}:${{ inputs.image_tag }}" \
             ./sample-app
 
-      - name: Start application container
+            - name: Start application container
         run: |
           docker run -d \
             --name "${CONTAINER_NAME}" \
@@ -54,56 +54,24 @@ jobs:
             -e APP_VERSION="${{ inputs.image_tag }}" \
             "${IMAGE_NAME}:${{ inputs.image_tag }}"
 
+      - name: Validate health-check script
+        run: bash -n ./scripts/health-check.sh
+
       - name: Wait for application health
         run: |
-          for attempt in {1..12}; do
-            STATUS="$(docker inspect \
-              --format='{{.State.Health.Status}}' \
-              "${CONTAINER_NAME}")"
-
-            echo "Attempt ${attempt}: ${STATUS}"
-
-            if [ "${STATUS}" = "healthy" ]; then
-              echo "Application is healthy."
-              exit 0
-            fi
-
-            if [ "${STATUS}" = "unhealthy" ]; then
-              echo "Application became unhealthy."
-              docker logs "${CONTAINER_NAME}"
-              exit 1
-            fi
-
-            sleep 5
-          done
-
-          echo "Application did not become healthy in time."
-          docker logs "${CONTAINER_NAME}"
-          exit 1
-
-      - name: Validate health endpoint
-        run: |
-          RESPONSE="$(curl \
-            --fail \
-            --silent \
-            --show-error \
-            http://127.0.0.1:3000/health)"
-
-          echo "${RESPONSE}"
-
-          echo "${RESPONSE}" | grep -q '"status":"healthy"'
+          ./scripts/health-check.sh \
+            http://127.0.0.1:3000/health \
+            '"status":"healthy"' \
+            12 \
+            5
 
       - name: Validate application endpoint
         run: |
-          RESPONSE="$(curl \
-            --fail \
-            --silent \
-            --show-error \
-            http://127.0.0.1:3000/)"
-
-          echo "${RESPONSE}"
-
-          echo "${RESPONSE}" | grep -q '"message":"Cloud CI/CD Demo"'
+          ./scripts/health-check.sh \
+            http://127.0.0.1:3000/ \
+            '"message":"Cloud CI/CD Demo"' \
+            3 \
+            2
 
       - name: Verify non-root execution
         run: |
