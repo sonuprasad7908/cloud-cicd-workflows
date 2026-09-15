@@ -32,7 +32,7 @@ Success / Rollback
 ## 📌 Project Roadmap
 
 - [x] Create sample application with health endpoint
-- [ ] Containerize application with Docker
+- [x] Containerize application with Docker
 - [ ] Add continuous integration workflow
 - [ ] Add Docker image validation
 - [ ] Add development deployment workflow
