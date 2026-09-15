@@ -33,7 +33,7 @@ Success / Rollback
 
 - [x] Create sample application with health endpoint
 - [x] Containerize application with Docker
-- [ ] Add continuous integration workflow
+- [x] Add continuous integration workflow
 - [ ] Add Docker image validation
 - [ ] Add development deployment workflow
 - [ ] Add test deployment workflow
