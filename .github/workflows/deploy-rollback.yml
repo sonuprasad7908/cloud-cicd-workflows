@@ -1,0 +1,70 @@
+name: Rollback Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_sha:
+        description: "Previous main commit SHA to validate as rollback target"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  validate-rollback:
+    name: Validate Rollback Target
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate rollback revision
+        shell: bash
+        run: |
+          git fetch origin main
+
+          ROLLBACK_SHA="${{ inputs.rollback_sha }}"
+          CURRENT_MAIN="$(git rev-parse origin/main)"
+
+          echo "Current main: ${CURRENT_MAIN}"
+          echo "Rollback target: ${ROLLBACK_SHA}"
+
+          if ! git cat-file -e "${ROLLBACK_SHA}^{commit}" 2>/dev/null; then
+            echo "Rollback target is not a valid Git commit."
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor \
+            "${ROLLBACK_SHA}" \
+            "origin/main"; then
+
+            echo "Rollback target does not belong to main history."
+            exit 1
+          fi
+
+          if [ "${ROLLBACK_SHA}" = "${CURRENT_MAIN}" ]; then
+            echo "Rollback target is already the current main revision."
+            exit 1
+          fi
+
+          echo "Rollback target is valid."
+
+  rollback:
+    name: Rollback
+    needs: validate-rollback
+
+    uses: ./.github/workflows/reusable-deploy.yml
+
+    with:
+      environment: production
+      image_tag: rollback-${{ inputs.rollback_sha }}
+      source_ref: ${{ inputs.rollback_sha }}
