@@ -1,0 +1,32 @@
+name: Test Deployment
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-deployment-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    uses: ./.github/workflows/reusable-deploy.yml
+
+    with:
+      environment: test
+      image_tag: test-${{ github.event.workflow_run.head_sha || github.sha }}
