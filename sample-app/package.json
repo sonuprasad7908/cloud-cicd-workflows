@@ -1,0 +1,14 @@
+{
+  "name": "cloud-cicd-demo",
+  "version": "1.0.0",
+  "description": "Minimal application used to demonstrate CI/CD and deployment health checks",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
