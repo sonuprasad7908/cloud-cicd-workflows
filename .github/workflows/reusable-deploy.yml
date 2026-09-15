@@ -1,0 +1,120 @@
+name: Reusable Deployment Validation
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: string
+
+      image_tag:
+        description: Docker image tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    environment:
+      name: ${{ inputs.environment }}
+
+    env:
+      IMAGE_NAME: cloud-cicd-demo
+      CONTAINER_NAME: cloud-cicd-demo-${{ inputs.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build deployment image
+        run: |
+          docker build \
+            -t "${IMAGE_NAME}:${{ inputs.image_tag }}" \
+            ./sample-app
+
+      - name: Start application container
+        run: |
+          docker run -d \
+            --name "${CONTAINER_NAME}" \
+            -p 3000:3000 \
+            -e APP_VERSION="${{ inputs.image_tag }}" \
+            "${IMAGE_NAME}:${{ inputs.image_tag }}"
+
+      - name: Wait for application health
+        run: |
+          for attempt in {1..12}; do
+            STATUS="$(docker inspect \
+              --format='{{.State.Health.Status}}' \
+              "${CONTAINER_NAME}")"
+
+            echo "Attempt ${attempt}: ${STATUS}"
+
+            if [ "${STATUS}" = "healthy" ]; then
+              echo "Application is healthy."
+              exit 0
+            fi
+
+            if [ "${STATUS}" = "unhealthy" ]; then
+              echo "Application became unhealthy."
+              docker logs "${CONTAINER_NAME}"
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "Application did not become healthy in time."
+          docker logs "${CONTAINER_NAME}"
+          exit 1
+
+      - name: Validate health endpoint
+        run: |
+          RESPONSE="$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            http://127.0.0.1:3000/health)"
+
+          echo "${RESPONSE}"
+
+          echo "${RESPONSE}" | grep -q '"status":"healthy"'
+
+      - name: Validate application endpoint
+        run: |
+          RESPONSE="$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            http://127.0.0.1:3000/)"
+
+          echo "${RESPONSE}"
+
+          echo "${RESPONSE}" | grep -q '"message":"Cloud CI/CD Demo"'
+
+      - name: Verify non-root execution
+        run: |
+          USER_ID="$(docker exec "${CONTAINER_NAME}" id -u)"
+
+          echo "Container UID: ${USER_ID}"
+
+          if [ "${USER_ID}" = "0" ]; then
+            echo "Deployment container is running as root."
+            exit 1
+          fi
+
+      - name: Show deployment logs on failure
+        if: failure()
+        run: |
+          docker logs "${CONTAINER_NAME}" || true
+
+      - name: Clean up deployment
+        if: always()
+        run: |
+          docker rm -f "${CONTAINER_NAME}" 2>/dev/null || true
