@@ -1,0 +1,36 @@
+name: Development Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "sample-app/**"
+      - ".github/workflows/deploy-development.yml"
+      - ".github/workflows/reusable-deploy.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "sample-app/**"
+      - ".github/workflows/deploy-development.yml"
+      - ".github/workflows/reusable-deploy.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: development-deployment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  development:
+    name: Development
+    uses: ./.github/workflows/reusable-deploy.yml
+
+    with:
+      environment: development
+      image_tag: development-${{ github.sha }}
