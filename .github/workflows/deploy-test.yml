@@ -30,3 +30,4 @@ jobs:
     with:
       environment: test
       image_tag: test-${{ github.event.workflow_run.head_sha || github.sha }}
+      source_ref: ${{ github.event.workflow_run.head_sha || github.sha }}
