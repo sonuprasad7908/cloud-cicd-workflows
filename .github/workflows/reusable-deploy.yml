@@ -46,7 +46,7 @@ jobs:
             -t "${IMAGE_NAME}:${{ inputs.image_tag }}" \
             ./sample-app
 
-            - name: Start application container
+      - name: Start application container
         run: |
           docker run -d \
             --name "${CONTAINER_NAME}" \
