@@ -1,0 +1,55 @@
+name: Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: "Commit SHA from main to release"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  validate-release:
+    name: Validate Release Revision
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout requested release
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.release_sha }}
+          fetch-depth: 0
+
+      - name: Verify release belongs to main
+        shell: bash
+        run: |
+          git fetch origin main
+
+          if ! git merge-base --is-ancestor \
+            "${{ inputs.release_sha }}" \
+            "origin/main"; then
+
+            echo "Requested release is not part of main."
+            exit 1
+          fi
+
+          echo "Release revision is valid."
+
+  production:
+    name: Production
+    needs: validate-release
+
+    uses: ./.github/workflows/reusable-deploy.yml
+
+    with:
+      environment: production
+      image_tag: production-${{ inputs.release_sha }}
+      source_ref: ${{ inputs.release_sha }}

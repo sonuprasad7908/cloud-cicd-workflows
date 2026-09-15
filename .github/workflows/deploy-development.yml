@@ -32,5 +32,6 @@ jobs:
     uses: ./.github/workflows/reusable-deploy.yml
 
     with:
-      environment: development
-      image_tag: development-${{ github.sha }}
+       environment: development
+       image_tag: development-${{ github.sha }}
+       source_ref: ${{ github.sha }}

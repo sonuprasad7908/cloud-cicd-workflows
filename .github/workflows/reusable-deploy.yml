@@ -13,6 +13,11 @@ on:
         required: true
         type: string
 
+      source_ref:
+        description: Git revision to deploy
+        required: true
+        type: string
+
 permissions:
   contents: read
 
@@ -30,8 +35,10 @@ jobs:
       CONTAINER_NAME: cloud-cicd-demo-${{ inputs.environment }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout deployment revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref }}
 
       - name: Build deployment image
         run: |
